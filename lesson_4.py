@@ -49,6 +49,10 @@ class Boss(GameEntity):
 
     def attack(self, heroes: list):
         for hero in heroes:
+            if hero.name == "gerald":  # Пропускаем атакующего Ведьмака
+                if hero.health > 0:  # Но Ведьмак все равно получает урон
+                    hero.health -= self.damage
+                continue  # Пропускаем Ведьмака, чтобы он не наносил урон
             if hero.health > 0:
                 if type(hero) == Berserk and self.defence != hero.ability:
                     hero.blocked_damage = choice([5, 10])
@@ -122,6 +126,51 @@ class Berserk(Hero):
         boss.health -= self.blocked_damage
         print(f'Berserk {self.name} reverted {self.blocked_damage} damage to boss.')
 
+class Wither(Hero):
+    def __init__(self, name, health, damage):
+        super().__init__(name, health, damage, 'REVIVE')
+        self.__used = False
+
+    def apply_super_power(self, boss: Boss, heroes: list):
+        if not self.__used:
+            for hero in heroes:
+                if hero.health == 0:
+                    hero.health = hero.health + self.health
+                    self.health = 0
+                    self.__used = True
+                    print(f'Wither {self.name} отдал свою жизнь за {hero.name}')
+                    break
+class Magic(Hero):
+    def __init__(self, name, health, damage):
+        super().__init__(name, health, damage, 'BOOST')
+        self.rounds_left = 4
+
+    def apply_super_power(self, boss: Boss, heroes: list):
+        if self.rounds_left > 0:
+            for hero in heroes:
+                if hero.health > 0:
+                    hero.damage += 20
+            self.rounds_left -= 1
+            print(f'Magic {self.name} увеличил урон всех героев на 20! Осталось {self.rounds_left} раундов.')
+class Hacker(Hero):
+    def __init__(self, name, health, damage, steal_amount):
+        super().__init__(name, health, damage, 'STEAL_HEALTH')
+        self.__steal_amount = steal_amount
+
+    @property
+    def steal_amount(self):
+        return self.__steal_amount
+
+    def apply_super_power(self, boss: Boss, heroes: list):
+        if boss.health > 0:
+            stolen_health = min(self.steal_amount, boss.health)
+            boss.health -= stolen_health
+            print(f'Hacker {self.name} забрал {stolen_health} здоровья у босса.')
+            alive_heroes = [hero for hero in heroes if hero.health > 0]
+            if alive_heroes:
+                hero = choice(alive_heroes)
+                hero.health += stolen_health
+                print(f'Hacker {self.name} передал {stolen_health} здоровья {hero.name}.')
 
 round_number = 0
 
@@ -162,8 +211,8 @@ def start_game():
     doc = Healer('Aibolit', 250, 5, 15)
     assistant = Healer('Dulittle', 300, 5, 5)
     berserk = Berserk('Guts', 260, 10)
-
-    heroes_list = [warrior_1, doc, warrior_2, magic, berserk, assistant]
+    witcher = Wither("gerald",400,0)
+    heroes_list = [warrior_1, doc, warrior_2, magic, berserk, assistant,witcher]
 
     show_statistics(boss, heroes_list)
     while not is_game_over(boss, heroes_list):
